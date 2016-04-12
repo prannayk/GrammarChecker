@@ -1,26 +1,37 @@
+module ImportRun where
+
 import Layout
 import Control.Monad
 import Control.Applicative hiding ((<|>),many)
 import Text.Parsec
 import Text.Parsec.String
 
+document :: Parser Grammar
 document = do
 	spaces
 	string "!|!"
 	spaces
-	x <- many term
+	x <- many terms
 	spaces
 	string "!|!"
 	spaces
 	string "|!|"
 	spaces
-	y <- many nterm
+	y <- many nterms
 	spaces
 	string "|!|" 
 	spaces
 	z <- many production
 	spaces
 	return (x,y,z)
+
+terms = do
+	x <- oneOf ['a'..'z']
+	return [x]
+
+nterms = do
+	x <- oneOf ['A'..'Z']
+	return [x]
 
 production = do
 	spaces
@@ -30,16 +41,16 @@ production = do
 	spaces
 	l <- many aring
 	spaces
-	return (Produce z l)
+	return $ Produce z l
 
 term = do
 	x <- oneOf ['A'..'Z']
-	return (NonTerm x)
+	return (NonTerm [x])
 
 nterm = do
 	x <- oneOf ['a'..'z']
+	return (Term [x])
 
 aring = do
-	spaces
 	l <- many (try nterm <|> term)
-	spaces
+	return l
