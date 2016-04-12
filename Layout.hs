@@ -1,10 +1,12 @@
+module Layout where
+
 import qualified Data.Either as E
 import Control.Monad
 import Control.Applicative
 
 type Terminal = String
 type NonTerminal = String
-data Atom = Term Terminal | NonTerm NonTerminal | Empty deriving (Show, Eq)
+data Atom = Term Terminal | NonTerm NonTerminal | Empty | Start | End deriving (Show, Eq)
 type Aring = [Atom]
 data Production = Produce Aring [Aring] 
 type Grammar = ([Terminal],[NonTerminal],[Production])
@@ -57,17 +59,27 @@ match [(NonTerm "A")] _ = [[(Term "a")],[( Term "b")]]
 match ring (_,_,prods) = prods >>= checkLeft ring
 -- check for if grammar is context free
 countF:: Grammar -> Terminal -> NonTerminal -> Integer
-countF grmmer term nonterm = foldl (\acc x -> if(x==True) then acc+1 else acc) 0 $ map (== [Term term]) (first grmmer [NonTerm nonterm])
+countF grmmer term nonterm = foldl (\acc x -> if(x==True) then acc+1 else acc) 0 $ map (== [Term term]) (concat $ map (\x -> if (x == [Empty]) then (follow grmmer [NonTerm nonterm]) else [x]) (first grmmer [NonTerm nonterm]))
 --check for ll1
 ll1 :: Grammar -> Bool
 ll1 (terms,nterms,prods) = and $ map (<1) $ countF (terms,nterms,prods) <$> terms <*> nterms
 
 -- left factor the grammar
-factor :: [[a]] -> [a]
-factor x:[] = []
-factor (x:xs):xss = longer (x ++ factor (filter (\(y:ys) -> x == y) xss)) (factor xss)
+factor :: (Eq a) => [[a]] -> [a]
+factor (x:[]) = []
+factor ((x:xs):xss) = longer (x:factor (filter (\(y:ys) -> x == y) xss)) (factor xss)
 
 longer :: [a] -> [a] -> [a]
 longer list1 list2
 	| (length list1) > (length list2) = list1
 	| otherwise = list2
+
+findRest :: Aring -> Aring -> Aring
+findRest check (cas:cases) = if (check == (take (length check) (cas:cases))) then drop (length check) (cas:cases) else findRest check cases
+findRest check [] = []
+followSet :: Aring -> Production -> [Aring]
+followSet check (Produce ring rings) = rings >>= (\x -> [(findRest check x)])
+
+follow :: Grammar -> Aring -> [Aring]
+follow _ [(Start)] = [[End]]
+follow (terms,nterms,prods) head = filter (/= [Empty]) $ prods >>= (followSet head) >>= (\x -> if (x /= []) then first (terms,nterms,prods) x else [])
