@@ -59,7 +59,7 @@ match ::  Aring -> Grammar -> [Aring]
 match ring (_,_,prods) = prods >>= checkLeft ring
 -- check for if grammar is context free
 countF:: Grammar -> Terminal -> NonTerminal -> Integer
-countF grmmer term nonterm = foldl (\acc x -> if(x==True) then acc+1 else acc) 0 $ filter (== [Term term]) (concat $ map (\x -> if (x == [Empty]) then (follow grmmer [NonTerm nonterm]) else [x]) (first grmmer [NonTerm nonterm]))
+countF grmmer term nonterm = foldl (\acc x -> if(x==True) then acc+1 else acc) 0 $ map (== [Term term]) $ (concat $ map (\x -> if (x == [Empty]) then (follow grmmer [NonTerm nonterm]) else [x]) (first grmmer [NonTerm nonterm]))
 --check for ll1
 --ll1 :: Grammar -> Bool
 ll1 (terms,nterms,prods) = and $ map (<=1) $ countF (terms,nterms,prods) <$> terms <*> nterms
